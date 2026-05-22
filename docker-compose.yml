@@ -1,0 +1,52 @@
+version: '3.9'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: vedaai-mongodb
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-vedaai}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS:-vedaai_secret}
+      MONGO_INITDB_DATABASE: vedaai
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - vedaai-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: vedaai-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - vedaai-network
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: vedaai-redis-ui
+    restart: unless-stopped
+    ports:
+      - '8081:8081'
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    depends_on:
+      - redis
+    networks:
+      - vedaai-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  vedaai-network:
+    driver: bridge
