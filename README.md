@@ -1,370 +1,233 @@
-# 🧠 VedaAI – AI Assessment Creator
+# VedaAI – AI Assessment Creator
 
-> Create professional AI-powered question papers and assessments in seconds. Built for educators.
-
-![Stack](https://img.shields.io/badge/Next.js-15-black?logo=next.js)
-![Stack](https://img.shields.io/badge/Express-4-green?logo=express)
-![Stack](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
-![Stack](https://img.shields.io/badge/MongoDB-7-green?logo=mongodb)
-![Stack](https://img.shields.io/badge/Redis-7-red?logo=redis)
-![Stack](https://img.shields.io/badge/BullMQ-5-purple)
-![Stack](https://img.shields.io/badge/Socket.IO-4-black?logo=socketdotio)
+VedaAI is a full-stack, enterprise-grade AI-powered assessment generation platform designed for educators to easily create structured, customizable question papers. Leveraging queue-based processing and real-time WebSocket communication, VedaAI delivers a responsive, reliable generation experience even under varying server loads.
 
 ---
 
-## 📋 Table of Contents
+## Features
 
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Setup Instructions](#setup-instructions)
-- [Environment Variables](#environment-variables)
-- [Queue Flow](#queue-flow)
-- [WebSocket Flow](#websocket-flow)
-- [PDF Generation](#pdf-generation)
-- [API Reference](#api-reference)
-- [Project Structure](#project-structure)
-- [Deployment](#deployment)
-- [Future Improvements](#future-improvements)
+- **Dynamic Assignment Planner:** Interactive forms allowing configuration of question formats (MCQs, Short Answer, True/False) and automatic balancing of difficulty distribution.
+- **Robust Queue-Based Workloads:** Offloads intensive AI generations to BullMQ background workers backed by Redis, ensuring reliability and zero HTTP request timeouts.
+- **Real-Time Progress Tracking:** Instant UI updates via WebSockets (Socket.IO) indicating generation progress percentages (e.g., plan, generate, structure, finalize).
+- **Responsive Exam-Paper Rendering:** A beautiful, responsive student-view layout showing structured sections, difficulty badges, mark allocations, and MCQ grids.
+- **High-Fidelity PDF Export:** Headless-browser print engine that exports generated assessments to print-ready A4 PDF documents.
 
 ---
 
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         Frontend                            │
-│              Next.js 15 + TailwindCSS + Zustand             │
-│         React Hook Form + Zod + Socket.IO Client            │
-└─────────────────┬───────────────────────┬───────────────────┘
-                  │ REST API              │ WebSocket
-                  ▼                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│                         Backend                             │
-│              Express + TypeScript + Socket.IO               │
-├─────────────┬─────────────┬──────────────┬──────────────────┤
-│  Controllers│   Routes    │  Middleware   │   Validators     │
-├─────────────┴─────────────┴──────────────┴──────────────────┤
-│                      Services Layer                         │
-│         AI Service │ PDF Service │ Prompt Service            │
-├─────────────────────────────────────────────────────────────┤
-│                      Queue Layer                            │
-│              BullMQ Queue + Assessment Worker               │
-├──────────────────┬──────────────────────────────────────────┤
-│     MongoDB      │              Redis                       │
-│  (Assignments,   │  (Queue state, job tracking,             │
-│   Papers, Jobs)  │   caching)                               │
-└──────────────────┴──────────────────────────────────────────┘
-```
-
----
-
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend
-| Technology | Purpose |
-|---|---|
-| Next.js 15 (App Router) | React framework with SSR |
-| TypeScript | Type safety |
-| TailwindCSS | Utility-first CSS |
-| shadcn/ui (Radix) | Accessible UI primitives |
-| Zustand | State management with persistence |
-| React Hook Form + Zod | Form validation |
-| TanStack Query | Server state management |
-| Socket.IO Client | Real-time updates |
-| Framer Motion | Animations |
-| Sonner | Toast notifications |
+- **Framework:** Next.js (App Router, TypeScript)
+- **State Management:** Zustand (with draft persistence to localStorage)
+- **Styles:** Tailwind CSS, Radix UI (shadcn/ui primitives)
+- **Server State:** TanStack React Query (v5)
+- **Real-Time Client:** Socket.IO Client
 
 ### Backend
-| Technology | Purpose |
-|---|---|
-| Express | HTTP server |
-| TypeScript | Type safety |
-| MongoDB + Mongoose | Document database |
-| Redis + IORedis | Caching & queue backend |
-| BullMQ | Job queue with retries |
-| Socket.IO | Real-time WebSocket events |
-| Puppeteer | PDF generation |
-| OpenAI SDK | AI question generation |
-| Winston | Structured logging |
-| Zod | Request validation |
-| Helmet + CORS | Security |
+- **Framework:** Node.js, Express (TypeScript)
+- **Database:** MongoDB (Mongoose ODM)
+- **Message Queue & Cache:** Redis (IORedis), BullMQ
+- **Real-Time Server:** Socket.IO
+- **PDF Engine:** Puppeteer (Headless Chrome)
+
+### AI & Prompt Engineering
+- **Engine:** Google Gemini API (gemini-1.5-flash) with Ollama fallback
+- **Validation:** Zod schemas for structured JSON outputs
+- **Reliability:** Built-in JSON regex cleaner and repair fallback mechanisms
 
 ---
 
-## 🚀 Setup Instructions
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         Next.js UI                          │
+│        Zustand Client State + React Query + Socket.IO       │
+└─────────────────┬───────────────────────┬───────────────────┘
+                  │ API Request           │ WebSocket Update
+                  ▼                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       Express Backend                       │
+│        CORS / Rate Limit / Zod Schema Validation            │
+├─────────────────┬───────────────────────┬───────────────────┤
+│    Database     │      Job Queue        │    Sockets Room   │
+│   MongoDB Atlas │     Redis / BullMQ    │     Socket.IO     │
+└────────┬────────┴───────────┬───────────┴─────────▲─────────┘
+         │ Writes Metadata    │ Enqueues Job        │ Progress Updates
+         ▼                    ▼                     │
+┌─────────────────────────────┴─────────────────────┴─────────┐
+│                     BullMQ Background Worker                │
+│       Gemini AI Generation ➔ MongoDB Save ➔ PDF Render      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## System Flow
+
+### 1. Frontend Flow
+- **Form Configuration:** The teacher fills out the assessment setup form (validated via React Hook Form and Zod).
+- **Draft Persistence:** Unsubmitted configurations are saved locally via Zustand.
+- **Real-Time Progress:** Upon submission, the UI routes to `/assignments/[id]` and connects to Socket.IO, displaying progress percentages emitted by the backend worker.
+- **Output:** Once finished, the UI routes to `/results/[id]`, displaying the formatted exam paper.
+
+### 2. Backend Flow
+- **API Request:** The API route receives the generation trigger and creates a `QueueJobMeta` tracking document in MongoDB.
+- **Queueing:** The controller enqueues an asynchronous generation job onto the BullMQ `assessment` queue in Redis.
+- **Worker Execution:** The BullMQ background worker retrieves the job, sets up room-based WebSocket updates, and initializes prompt generation.
+- **AI Processing:** Worker queries the AI service to build questions, validates the structure against Zod models, saves the parsed `GeneratedPaper` to MongoDB, and triggers Puppeteer for PDF pre-rendering.
+- **Broadcast:** The worker broadcasts a "completed" event via Socket.IO, instructing the frontend to resolve page redirection.
+
+### 3. AI Flow
+- **Prompt Engineering:** Formulates highly structured system instructions dictating question formats, difficulty distributions, and JSON schema boundaries.
+- **Structured JSON Parsing:** Enforces JSON responses, and utilizes regular expressions and repair functions to resolve trailing commas or markdown backtick enclosures before validation.
+- **Tagging:** Categorizes sections and labels questions with difficulty tags (Easy/Medium/Hard) and marks allocation.
+
+---
+
+## Folder Structure
+
+```
+apps/
+  web/                  # Next.js Frontend Application
+    src/
+      app/              # App Router Pages
+      components/       # UI Primitives & Layout wrappers
+      hooks/            # React Query & WebSocket connection hooks
+      services/         # Axios API client & socket bindings
+      store/            # Zustand global stores
+  server/               # Express Backend API
+    src/
+      config/           # Environment, DB, Redis & Logger configs
+      controllers/      # Request handlers & Queue triggers
+      middleware/       # CORS, Error handling, Rate limiting, Uploads
+      models/           # Mongoose Schemas (Assignment, Paper)
+      queues/           # BullMQ queues & workers
+      services/         # Gemini API, Prompt builder & Puppeteer PDF services
+packages/
+  shared/               # Shared Types and Utilities
+    src/
+      types/            # Common TypeScript interfaces & enums
+```
+
+---
+
+## Installation & Setup
 
 ### Prerequisites
+- Node.js >= 20.x
+- pnpm >= 9.x
+- Docker (for local Redis/MongoDB instances)
 
-- Node.js >= 20
-- pnpm >= 9
-- Docker & Docker Compose (for MongoDB + Redis)
-
-### 1. Clone & Install
-
+### 1. Clone the Repository & Install Dependencies
 ```bash
-git clone <repo-url> vedaai
+git clone https://github.com/vivekkumarprasad271104/vedaai.git
 cd vedaai
 pnpm install
 ```
 
-### 2. Start Infrastructure
-
+### 2. Run Local Infrastructure Services
 ```bash
 docker-compose up -d
 ```
+This launches a local MongoDB, Redis, and a Redis Commander console UI.
 
-This starts:
-- MongoDB on `localhost:27017`
-- Redis on `localhost:6379`
-- Redis Commander UI on `localhost:8081`
-
-### 3. Configure Environment
-
-```bash
-# Backend
-cp apps/server/.env.example apps/server/.env
-# Edit apps/server/.env and add your OPENAI_API_KEY
-
-# Frontend
-cp apps/web/.env.local.example apps/web/.env.local
-```
-
-### 4. Run Development
-
-```bash
-# Run everything (frontend + backend) via Turbo
-pnpm dev
-
-# Or individually:
-cd apps/server && pnpm dev    # Backend on :4000
-cd apps/web && pnpm dev       # Frontend on :3000
-```
-
-### 5. Verify
-
-- Frontend: http://localhost:3000
-- Backend Health: http://localhost:4000/api/health
-- Redis Commander: http://localhost:8081
+### 3. Configure Environment Files
+Follow the examples below to create your local configurations.
 
 ---
 
-## 🔐 Environment Variables
+## Environment Variables
 
 ### Backend (`apps/server/.env`)
-
-| Variable | Description | Default |
-|---|---|---|
-| `PORT` | Server port | `4000` |
-| `NODE_ENV` | Environment | `development` |
-| `CORS_ORIGIN` | Allowed CORS origin | `http://localhost:3000` |
-| `MONGO_URI` | MongoDB connection string | Required |
-| `REDIS_URL` | Redis connection string | `redis://localhost:6379` |
-| `OPENAI_API_KEY` | OpenAI API key | Required |
-| `AI_PROVIDER` | AI provider (`openai`/`claude`) | `openai` |
-| `AI_MODEL` | Model name | `gpt-4o` |
-| `QUEUE_CONCURRENCY` | Worker concurrency | `3` |
-| `JOB_TIMEOUT` | Job timeout (ms) | `120000` |
-| `JOB_MAX_RETRIES` | Max retry attempts | `3` |
-| `PDF_STORAGE_PATH` | PDF file storage path | `./storage/pdfs` |
+Create a `.env` file in `apps/server/`:
+```env
+PORT=4000
+NODE_ENV=development
+MONGO_URI=mongodb://localhost:27017/vedaai
+REDIS_URL=redis://localhost:6379
+GEMINI_API_KEY=your_gemini_api_key_here
+CORS_ORIGIN=http://localhost:3000
+```
 
 ### Frontend (`apps/web/.env.local`)
-
-| Variable | Description | Default |
-|---|---|---|
-| `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:4000/api` |
-| `NEXT_PUBLIC_WS_URL` | WebSocket URL | `http://localhost:4000` |
-
----
-
-## 🔄 Queue Flow
-
-```
-1. POST /api/assignments          → Create assignment in MongoDB
-2. POST /api/assignments/:id/generate → Validate + create BullMQ job
-3. BullMQ enqueues job            → Redis stores job state
-4. Worker picks up job            → Emits "processing" via Socket.IO
-5. Worker calls OpenAI API        → AI generates structured JSON
-6. Worker validates with Zod      → Strict schema enforcement
-7. Worker saves to MongoDB        → GeneratedPaper document
-8. Worker emits "completed"       → Socket.IO broadcasts to room
-9. Frontend auto-updates          → React Query invalidation
-10. User sees generated paper     → Professional exam-paper UI
-```
-
-**Retry Logic:**
-- 3 attempts with exponential backoff (2s, 4s, 8s)
-- Failed jobs retained for 7 days
-- Completed jobs retained for 24 hours
-
----
-
-## 📡 WebSocket Flow
-
-### Events
-
-| Event | Direction | Description |
-|---|---|---|
-| `join:room` | Client → Server | Join assignment-specific room |
-| `leave:room` | Client → Server | Leave assignment room |
-| `job:queued` | Server → Client | Job added to queue |
-| `job:processing` | Server → Client | Worker started processing |
-| `job:progress` | Server → Client | Progress update (0-100%) |
-| `job:completed` | Server → Client | Generation complete |
-| `job:failed` | Server → Client | Generation failed |
-
-### Client Usage
-
-```typescript
-// Join room for real-time updates
-useAssignmentSocket(assignmentId);
-
-// Access job state from Zustand store
-const jobState = useSocketStore(s => s.jobStates[assignmentId]);
+Create a `.env.local` file in `apps/web/`:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:4000/api
+NEXT_PUBLIC_WS_URL=http://localhost:4000
 ```
 
 ---
 
-## 📄 PDF Generation
+## Running Locally
 
-- **Engine:** Puppeteer (headless Chromium)
-- **Template:** Professional exam-paper HTML with proper typography
-- **Features:**
-  - Student info section (Name, Roll No, Section)
-  - Numbered questions with marks
-  - MCQ options grid
-  - Difficulty badges
-  - Proper A4 pagination
-  - Section separators
-- **Storage:** Generated PDFs saved to `storage/pdfs/`
+To run the entire workspace concurrently (Frontend + Backend + Shared dependencies):
+```bash
+pnpm dev
+```
+- **Frontend Dashboard:** `http://localhost:3000`
+- **Backend API Server:** `http://localhost:4000`
+- **Redis Commander UI:** `http://localhost:8081`
 
 ---
 
-## 📚 API Reference
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/health` | Health check |
-| `POST` | `/api/assignments` | Create assignment (multipart) |
-| `GET` | `/api/assignments` | List assignments (paginated) |
-| `GET` | `/api/assignments/:id` | Get assignment by ID |
-| `POST` | `/api/assignments/:id/generate` | Start AI generation |
-| `GET` | `/api/results/:id` | Get generated paper |
-| `GET` | `/api/results/:id/pdf` | Download PDF |
-| `GET` | `/api/results/assignment/:id` | Get paper by assignment |
-| `POST` | `/api/results/:id/regenerate` | Regenerate paper |
-
----
-
-## 📁 Project Structure
+## Queue & WebSocket Flow
 
 ```
-vedaai/
-├── apps/
-│   ├── web/                          # Next.js 15 Frontend
-│   │   ├── src/
-│   │   │   ├── app/                  # App Router pages
-│   │   │   │   ├── (app)/           # Dashboard layout group
-│   │   │   │   │   ├── dashboard/   # Dashboard page
-│   │   │   │   │   ├── assignments/ # Assignment pages
-│   │   │   │   │   └── results/     # Result pages
-│   │   │   │   ├── layout.tsx       # Root layout
-│   │   │   │   ├── providers.tsx    # React Query + Toaster
-│   │   │   │   └── globals.css      # Theme + utilities
-│   │   │   ├── components/
-│   │   │   │   ├── ui/             # shadcn/ui components
-│   │   │   │   ├── layout/         # Sidebar, Header, AppShell
-│   │   │   │   └── shared/         # EmptyState, StatusBadge
-│   │   │   ├── modules/
-│   │   │   │   └── assignments/    # AssignmentForm
-│   │   │   ├── store/              # Zustand stores
-│   │   │   ├── hooks/              # React Query + Socket hooks
-│   │   │   ├── services/           # API + Socket.IO clients
-│   │   │   ├── lib/                # Utilities (cn)
-│   │   │   └── types/              # Shared type re-exports
-│   │   ├── tailwind.config.ts
-│   │   ├── next.config.ts
-│   │   └── components.json         # shadcn config
-│   │
-│   └── server/                       # Express Backend
-│       ├── src/
-│       │   ├── config/              # env, database, redis, logger
-│       │   ├── controllers/         # Request handlers
-│       │   ├── routes/              # Express routes
-│       │   ├── models/              # Mongoose schemas
-│       │   ├── middleware/          # Error, auth, validate, upload
-│       │   ├── validators/          # Zod schemas
-│       │   ├── services/            # AI, PDF, Prompt
-│       │   ├── queues/              # BullMQ queue + connection
-│       │   ├── workers/             # Assessment worker
-│       │   ├── socket/              # Socket.IO setup
-│       │   ├── utils/               # ApiError, ApiResponse
-│       │   ├── app.ts               # Express app factory
-│       │   └── index.ts             # Bootstrap entry
-│       ├── storage/                 # Uploads + PDFs
-│       └── Dockerfile
-│
-├── packages/
-│   └── shared/                       # Shared TypeScript types
-│       └── src/types/               # Assignment, API, Socket types
-│
-├── docker-compose.yml               # MongoDB + Redis
-├── turbo.json                       # Turborepo config
-├── pnpm-workspace.yaml
-└── package.json
+   [ Teacher Submit ]
+           │
+           ▼
+[ Express API Route ] ──► (Create Job Meta in Mongo)
+           │
+           ▼
+ [ Enqueue on BullMQ ] ──► (Job placed in Redis queue)
+           │
+           ▼
+ [ Background Worker ] ──► (Worker picks up task)
+           │
+           ├──► [ Prog: 10% ]  ──► Emit WebSocket ──► [ Frontend: Setup ]
+           ├──► [ Prog: 30% ]  ──► Emit WebSocket ──► [ Frontend: Query LLM ]
+           ├──► [ Prog: 70% ]  ──► Emit WebSocket ──► [ Frontend: Save MDB ]
+           └──► [ Prog: 100% ] ──► Emit WebSocket ──► [ Frontend: Completed ]
 ```
 
 ---
 
-## 🚢 Deployment
+## AI Generation Flow
 
-### Frontend → Vercel
-
-1. Connect repo to Vercel
-2. Set root directory to `apps/web`
-3. Framework: Next.js
-4. Add environment variables:
-   - `NEXT_PUBLIC_API_URL` = your backend URL + `/api`
-   - `NEXT_PUBLIC_WS_URL` = your backend URL
-
-### Backend → Render / Railway
-
-1. Use `apps/server/Dockerfile` or `render.yaml`
-2. Add environment variables (see table above)
-3. Ensure MongoDB Atlas + Redis Cloud are provisioned
-
-### Database → MongoDB Atlas
-
-1. Create free M0 cluster
-2. Get connection string
-3. Set as `MONGO_URI`
-
-### Cache → Redis Cloud
-
-1. Create free Redis instance
-2. Get connection URL
-3. Set as `REDIS_URL`
+1. **Prompt Assembly:** Backend constructs system instructions utilizing user parameters (topic, sections count, difficulty metrics).
+2. **LLM Query:** Sends a request to Google Gemini API requesting strict JSON conforming to Zod schemas.
+3. **Response Repair:** In case of failure or malformed text blocks, the response passes through a regex repair utility to strip markdown wrappers and fix object structure issues.
+4. **Zod Validation:** The response JSON is validated against strict model structures; fallback LLMs are queried automatically if validation fails.
+5. **Storage:** Upon successful validation, the assessment structure is written to MongoDB.
 
 ---
 
-## 🔮 Future Improvements
+## Deployment Instructions
 
-- [ ] **Authentication** – JWT-based teacher/admin auth
-- [ ] **Answer Keys** – Separate answer key generation
-- [ ] **Bulk Export** – Export multiple papers at once
-- [ ] **Template Library** – Save and reuse exam templates
-- [ ] **Analytics** – Track question difficulty and usage
-- [ ] **Multi-language** – Support non-English assessments
-- [ ] **Collaborative Editing** – Multiple teachers on one paper
-- [ ] **Custom Branding** – School logo and header in PDFs
-- [ ] **Question Bank** – Store and reuse generated questions
-- [ ] **Claude/Gemini Support** – Multi-provider AI backends
+### Frontend (Vercel)
+The client application is built to deploy seamlessly on Vercel:
+1. Connect your repository to Vercel.
+2. Set the **Root Directory** settings under project configuration to `apps/web`.
+3. Select **Next.js** as the framework preset.
+4. Configure production environment variables: `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_WS_URL` targeting your deployed backend.
 
----
-
-## 📝 License
-
-MIT
+### Backend (Render / Railway)
+The backend containerizes easily and can run on any platform supporting Node.js or Docker:
+1. Link your repository to Render or Railway.
+2. Use the provided Dockerfile in `apps/server/Dockerfile` or configure the build directory to root with build command: `pnpm install` and start command: `pnpm --filter @vedaai/server start`.
+3. Provide environment credentials (`MONGO_URI`, `REDIS_URL`, `GEMINI_API_KEY`).
 
 ---
 
-Built with ❤️ by VedaAI
+## Future Improvements
+
+- **Interactive Question Regenerator:** Allow instructors to select individual questions to regenerate or modify manually on-the-fly.
+- **Collaborative Workspaces:** Real-time multi-instructor editing of assessment rubrics and question templates.
+- **Extended PDF Layout Options:** Choice of typography, headers, page layouts, and formatting presets before export.
+
+---
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
