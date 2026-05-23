@@ -42,7 +42,11 @@ export async function apiPost<T>(url: string, data?: unknown): Promise<ApiRespon
 
 export async function apiPostForm<T>(url: string, formData: FormData): Promise<ApiResponse<T>> {
   const response = await apiClient.post<ApiResponse<T>>(url, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      'Bypass-Tunnel-Reminder': 'true',
+      'serveo-skip-browser-warning': 'true',
+    },
   });
   return response.data;
 }

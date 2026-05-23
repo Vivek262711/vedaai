@@ -13,6 +13,8 @@ import { resultRoutes } from './routes/result.routes';
 export function createApp(): express.Application {
   const app = express();
 
+  app.set('trust proxy', 1);
+
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.use(cors({
     origin: true,
