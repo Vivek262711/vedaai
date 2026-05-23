@@ -8,6 +8,8 @@ export const apiClient = axios.create({
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
+    'Bypass-Tunnel-Reminder': 'true',
+    'serveo-skip-browser-warning': 'true',
   },
 });
 

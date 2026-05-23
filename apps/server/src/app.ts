@@ -14,18 +14,17 @@ export function createApp(): express.Application {
   const app = express();
 
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-  const allowedOrigins = env.CORS_ORIGIN.split(',').map(o => o.trim());
   app.use(cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || /^https?:\/\/localhost:\d+$/.test(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
+    origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Bypass-Tunnel-Reminder',
+      'bypass-tunnel-reminder',
+      'serveo-skip-browser-warning'
+    ]
   }));
   app.use(generalLimiter);
   app.use(express.json({ limit: '10mb' }));
