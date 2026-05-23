@@ -1,19 +1,3 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "apps/web/package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/apps/web/$1"
-    }
-  ],
-  "env": {
-    "NEXT_PUBLIC_API_URL": "@vedaai_api_url",
-    "NEXT_PUBLIC_WS_URL": "@vedaai_ws_url"
-  }
+  "version": 2
 }

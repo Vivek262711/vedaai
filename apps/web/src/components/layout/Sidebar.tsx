@@ -21,7 +21,7 @@ export function Sidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside className={cn('fixed left-0 top-0 z-40 h-screen flex flex-col border-r border-border/50 bg-card/50 backdrop-blur-xl transition-all duration-300', collapsed ? 'w-[68px]' : 'w-[240px]')}>
+      <aside className={cn('fixed left-0 top-0 z-40 h-screen hidden md:flex flex-col border-r border-border/50 bg-card/50 backdrop-blur-xl transition-all duration-300', collapsed ? 'w-[68px]' : 'w-[240px]')}>
         <div className="flex h-16 items-center px-4 border-b border-border/50">
           <Logo collapsed={collapsed} />
         </div>

@@ -3,6 +3,7 @@
 import { Bell, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Logo } from './Logo';
 
 interface HeaderProps {
   title?: string;
@@ -11,10 +12,13 @@ interface HeaderProps {
 
 export function Header({ title, description }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-xl px-6">
-      <div>
-        {title && <h1 className="text-lg font-semibold">{title}</h1>}
-        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-xl px-4 md:px-6">
+      <div className="flex items-center gap-3">
+        <Logo className="md:hidden flex" />
+        <div className="hidden md:block">
+          {title && <h1 className="text-lg font-semibold">{title}</h1>}
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        </div>
       </div>
       <div className="flex items-center gap-3">
         <div className="relative hidden md:block">
