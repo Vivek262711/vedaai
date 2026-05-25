@@ -10,7 +10,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 4000
+        value: "4000"
       - key: CORS_ORIGIN
         sync: false
       - key: MONGO_URI
@@ -24,11 +24,11 @@ services:
       - key: AI_MODEL
         value: gemini-2.5-flash
       - key: QUEUE_CONCURRENCY
-        value: 2
+        value: "2"
       - key: JOB_TIMEOUT
-        value: 120000
+        value: "120000"
       - key: JOB_MAX_RETRIES
-        value: 3
+        value: "3"
       - key: PDF_STORAGE_PATH
         value: /tmp/pdfs
       - key: PUPPETEER_EXECUTABLE_PATH
