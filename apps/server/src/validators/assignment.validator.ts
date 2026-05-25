@@ -6,7 +6,8 @@ export const createAssignmentSchema = z.object({
   subject: z.string().max(100).optional(),
   grade: z.string().max(50).optional(),
   dueDate: z.string().min(1, 'Due date is required').refine((val) => {
-    const date = new Date(val);
+    const [year, month, day] = val.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     return date >= now;

@@ -47,7 +47,7 @@ export function useCreateAssignment() {
       toast.success('Assignment created successfully!');
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to create assignment');
+      console.error('[CreateAssignment] Mutation error:', error);
     },
   });
 }

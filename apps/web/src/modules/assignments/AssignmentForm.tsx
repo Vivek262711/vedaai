@@ -128,8 +128,20 @@ export function AssignmentForm() {
       await generateMutation.mutateAsync(assignmentId);
       resetDraft();
       router.push(`/assignments/${assignmentId}`);
-    } catch {
-      toast.error('Failed to create assignment');
+    } catch (err: any) {
+      console.error('[CreateAssignment] Error:', err);
+      const responseData = err.response?.data;
+      const mainMessage = responseData?.message || err.message || 'Failed to create assignment';
+      const details = responseData?.details;
+
+      if (Array.isArray(details) && details.length > 0) {
+        const detailList = details.map((d: any) => `${d.field ? `${d.field}: ` : ''}${d.message}`).join(', ');
+        toast.error(`${mainMessage}: ${detailList}`);
+      } else if (typeof details === 'string') {
+        toast.error(`${mainMessage}: ${details}`);
+      } else {
+        toast.error(mainMessage);
+      }
     }
   };
 

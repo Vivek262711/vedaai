@@ -1,5 +1,5 @@
 async function test() {
-  const API_URL = 'https://8f6e7e2bc5faf164-106-222-248-18.serveousercontent.com/api';
+  const API_URL = 'https://vedaai-server-production.up.railway.app/api';
   console.log('Testing creation of assignment...');
 
   const assignmentData = {
