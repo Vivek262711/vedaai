@@ -1,5 +1,5 @@
 async function test() {
-  const API_URL = 'http://localhost:4000/api';
+  const API_URL = 'https://8f6e7e2bc5faf164-106-222-248-18.serveousercontent.com/api';
   console.log('Testing creation of assignment...');
 
   const assignmentData = {
@@ -22,7 +22,10 @@ async function test() {
     // 1. Create assignment
     const createRes = await fetch(`${API_URL}/assignments`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'serveo-skip-browser-warning': 'true'
+      },
       body: JSON.stringify(assignmentData)
     });
 
@@ -37,7 +40,10 @@ async function test() {
     // 2. Trigger generation
     console.log('Triggering question generation...');
     const genRes = await fetch(`${API_URL}/assignments/${assignmentId}/generate`, {
-      method: 'POST'
+      method: 'POST',
+      headers: {
+        'serveo-skip-browser-warning': 'true'
+      }
     });
 
     if (!genRes.ok) {
@@ -51,7 +57,11 @@ async function test() {
     console.log('Polling for completion status (max 60 seconds)...');
     const start = Date.now();
     while (Date.now() - start < 60000) {
-      const statusRes = await fetch(`${API_URL}/assignments/${assignmentId}`);
+      const statusRes = await fetch(`${API_URL}/assignments/${assignmentId}`, {
+        headers: {
+          'serveo-skip-browser-warning': 'true'
+        }
+      });
       if (!statusRes.ok) {
         throw new Error(`Status check failed with status ${statusRes.status}`);
       }
@@ -65,29 +75,39 @@ async function test() {
         console.log(`Paper ID: ${assignment.generatedPaperId}`);
         
         // Fetch paper content
-        const paperRes = await fetch(`${API_URL}/results/${assignment.generatedPaperId}`);
+        const paperRes = await fetch(`${API_URL}/results/${assignment.generatedPaperId}`, {
+          headers: {
+            'serveo-skip-browser-warning': 'true'
+          }
+        });
         if (!paperRes.ok) {
           throw new Error(`Paper fetch failed with status ${paperRes.status}`);
         }
 
         const paperData = await paperRes.json();
-        const paper = paperData.data;
+        const paper = paperData.data?.paper;
         console.log('\n--- GENERATED PAPER DETAILS ---');
-        console.log(`Title: ${paper.title}`);
-        console.log(`Total Marks: ${paper.totalMarks}`);
+        console.log(`Title: ${paper?.title || 'No title'}`);
+        console.log(`Total Marks: ${paper?.totalMarks || 'N/A'}`);
         console.log('Sections & Questions:');
-        paper.sections.forEach(sec => {
-          console.log(`\nSection: ${sec.title} (${sec.instruction})`);
-          sec.questions.forEach((q, i) => {
-            console.log(`  ${i+1}. [${q.difficulty.toUpperCase()} - ${q.marks} marks] ${q.question}`);
-            if (q.options) {
-              console.log(`     Options: ${q.options.join(', ')}`);
-            }
-            if (q.answer) {
-              console.log(`     Answer: ${q.answer}`);
+        if (paper?.sections) {
+          paper.sections.forEach(sec => {
+            console.log(`\nSection: ${sec.title} (${sec.instruction})`);
+            if (sec.questions) {
+              sec.questions.forEach((q, i) => {
+                console.log(`  ${i+1}. [${q.difficulty?.toUpperCase()} - ${q.marks} marks] ${q.question}`);
+                if (q.options) {
+                  console.log(`     Options: ${q.options.join(', ')}`);
+                }
+                if (q.answer) {
+                  console.log(`     Answer: ${q.answer}`);
+                }
+              });
             }
           });
-        });
+        } else {
+          console.log('No sections or questions generated yet.', JSON.stringify(paper));
+        }
         console.log('-------------------------------\n');
         process.exit(0);
       } else if (assignment.status === 'failed') {
