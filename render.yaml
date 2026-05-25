@@ -1,11 +1,11 @@
 services:
   - type: web
     name: vedaai-server
-    runtime: node
+    runtime: docker
+    dockerfilePath: apps/server/Dockerfile
+    dockerContext: .
     region: oregon
     plan: free
-    buildCommand: npm install -g pnpm && pnpm install && pnpm --filter @vedaai/server build
-    startCommand: cd apps/server && node dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -36,4 +36,4 @@ services:
       - key: PDF_STORAGE_PATH
         value: /tmp/pdfs
       - key: PUPPETEER_EXECUTABLE_PATH
-        value: /usr/bin/google-chrome-stable
+        value: /usr/bin/chromium-browser
