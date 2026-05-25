@@ -9,6 +9,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "20.10.0"
+      - key: PNPM_VERSION
+        value: "9.15.0"
       - key: PORT
         value: "4000"
       - key: CORS_ORIGIN
