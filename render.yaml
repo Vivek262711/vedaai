@@ -4,7 +4,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: pnpm install && pnpm --filter @vedaai/server build
+    buildCommand: npm install -g pnpm && pnpm install && pnpm --filter @vedaai/server build
     startCommand: cd apps/server && node dist/index.js
     envVars:
       - key: NODE_ENV
